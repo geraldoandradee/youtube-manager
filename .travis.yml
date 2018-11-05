@@ -1,0 +1,27 @@
+language: php
+
+php:
+- '7.1'
+- '7.2'
+
+before_script: composer install
+
+script: php vendor/phpunit/phpunit/phpunit --configuration phpunit.xml tests
+
+deploy:
+  provider: script
+  skip_cleanup: true
+  script:
+  - php $TRAVIS_BUILD_DIR/deploy.php
+  - ssh -i $TRAVIS_BUILD_DIR/deploy_rsa $DEPLOY_USER@$DEPLOY_HOST -p $DEPLOY_PORT -oHostKeyAlgorithms=+ssh-dss 'rm -rf vendor;tar xzf vendor.tar.gz;rm -rf vendor.tar.gz'
+  on:
+    branch: master
+
+addons:
+  ssh_known_hosts: "$DEPLOY_HOST"
+
+before_deploy:
+- openssl aes-256-cbc -K $encrypted_74d8400dd1fa_key -iv $encrypted_74d8400dd1fa_iv -in deploy_rsa.enc -out $TRAVIS_BUILD_DIR/deploy_rsa -d
+- eval "$(ssh-agent -s)"
+- chmod 600 $TRAVIS_BUILD_DIR/deploy_rsa
+- ssh-add $TRAVIS_BUILD_DIR/deploy_rsa
